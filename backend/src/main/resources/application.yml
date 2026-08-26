@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: book-decision-backend
+  config:
+    import: optional:file:./config/application-local.yml
+  flyway:
+    enabled: false
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 1100KB
+
+book-decision:
+  dataset:
+    provider: classpath
+  platform-display-mode: alias
+  user-dataset:
+    enabled: ${USER_DATASET_ENABLED:false}
+    retention-days: ${USER_DATASET_RETENTION_DAYS:30}
+    cleanup-delay-ms: ${USER_DATASET_CLEANUP_DELAY_MS:3600000}
+    max-file-size-bytes: ${USER_DATASET_MAX_FILE_SIZE_BYTES:1048576}
+    max-isbn-count: ${USER_DATASET_MAX_ISBN_COUNT:100}
+    max-row-count: ${USER_DATASET_MAX_ROW_COUNT:500}
+    upload-rate-limit:
+      # Per application instance, keyed by the servlet remote address (not X-Forwarded-For).
+      max-uploads-per-window: ${USER_DATASET_RATE_LIMIT_MAX_UPLOADS:10}
+      window-seconds: ${USER_DATASET_RATE_LIMIT_WINDOW_SECONDS:60}
+    storage-quota:
+      # PostgreSQL serializes this global retained-row check across app instances.
+      max-retained-uploads: ${USER_DATASET_MAX_RETAINED_UPLOADS:100}
+      max-retained-bytes: ${USER_DATASET_MAX_RETAINED_BYTES:52428800}
+    minio:
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY:}
+      secret-key: ${MINIO_SECRET_KEY:}
+      bucket: ${MINIO_BUCKET:book-decision-private-uploads}
+  admin:
+    # Disabled by default. Enabling without both credentials fails startup.
+    enabled: ${ADMIN_API_ENABLED:false}
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  solver:
+    # A policy is solved in sequential lexicographic phases; bound each phase independently.
+    max-time-seconds-per-phase: ${SOLVER_MAX_TIME_SECONDS_PER_PHASE:5.0}
+    worker-count: ${SOLVER_WORKER_COUNT:1}
+    # One permit covers a complete /decisions or /decision-options HTTP use case.
+    max-concurrent-requests: ${SOLVER_MAX_CONCURRENT_REQUESTS:2}
+    admission-timeout-ms: ${SOLVER_ADMISSION_TIMEOUT_MS:100}
+    # Cooperative strategy-boundary budget; a running CP-SAT phase still uses the limit above.
+    max-total-time-seconds-per-options-request: ${SOLVER_MAX_TOTAL_TIME_SECONDS_PER_OPTIONS_REQUEST:20.0}
+  web:
+    cors:
+      # Exact H5 origins only. Override with a comma-separated CORS_ALLOWED_ORIGINS value.
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+      preflight-cache-seconds: ${CORS_PREFLIGHT_CACHE_SECONDS:3600}
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "!postgres"
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration

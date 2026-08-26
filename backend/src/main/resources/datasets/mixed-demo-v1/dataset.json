@@ -1,0 +1,664 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "mixed-demo-v1",
+  "sourceKind": "MIXED",
+  "generationSeed": 20260809,
+  "objectivePolicyVersion": "max-books-money-platforms-orders-v1",
+  "engineVersion": "cp-sat-lexicographic-v1",
+  "amountUnit": "CNY_CENT",
+  "disclaimer": "本数据集仅用于作品演示与求解器测试。ISBN、书名和匿名化规则形状来自2026-08-09人工观察快照；报价矩阵为固定合成数据，不代表任何真实回收平台的当前报价，也不能用于真实交易决策。",
+  "disclaimers": [
+    {
+      "code": "OBSERVED_CATALOG_AND_RULE_SHAPES",
+      "text": "ISBN、书名和匿名化规则形状来自2026-08-09人工观察快照；规则可能已变化。"
+    },
+    {
+      "code": "SYNTHETIC_OFFER_MATRIX",
+      "text": "平台身份已匿名；报价、接收状态和逐书复本覆盖为固定合成数据。"
+    },
+    {
+      "code": "NOT_REAL_TIME_QUOTES",
+      "text": "展示报价不是任何真实平台的当前报价，不能用于真实交易决策。"
+    },
+    {
+      "code": "ESTIMATE_NOT_SETTLEMENT",
+      "text": "求解结果中的金额仅为演示性预估，不是到仓复检后的最终结算金额。"
+    }
+  ],
+  "books": [
+    {
+      "isbn": "9787020002207",
+      "title": "红楼梦"
+    },
+    {
+      "isbn": "9787111544937",
+      "title": "深入理解计算机系统"
+    },
+    {
+      "isbn": "9787508647357",
+      "title": "人类简史：从动物到上帝"
+    },
+    {
+      "isbn": "9787534352362",
+      "title": "数学（义务教育教科书三年级上册）"
+    },
+    {
+      "isbn": "9787303147533",
+      "title": "数学（北师大版六年级上册）"
+    },
+    {
+      "isbn": "9787521333299",
+      "title": "考研英语历年真题"
+    },
+    {
+      "isbn": "9787040396638",
+      "title": "高等数学（同济版上）"
+    },
+    {
+      "isbn": "9787115621375",
+      "title": "自卑与超越"
+    },
+    {
+      "isbn": "9787040599008",
+      "title": "马克思主义基本原理（2023版）"
+    },
+    {
+      "isbn": "9787040599015",
+      "title": "中国近现代史纲要（2023版）"
+    },
+    {
+      "isbn": "9787521766912",
+      "title": "思考，快与慢"
+    }
+  ],
+  "platforms": [
+    {
+      "id": "platform-a",
+      "displayName": "平台A",
+      "ruleSummary": "预估金额满20.00元；每单最多40本",
+      "multipleOrdersAllowed": true,
+      "maxBooksPerOrder": 40,
+      "defaultRepeatPolicy": "UP_TO_INVENTORY",
+      "threshold": {
+        "type": "AMOUNT_AT_LEAST",
+        "amountCents": 2000
+      }
+    },
+    {
+      "id": "platform-b",
+      "displayName": "平台B",
+      "ruleSummary": "预估金额满48.00元，或每单至少8本",
+      "multipleOrdersAllowed": true,
+      "maxBooksPerOrder": null,
+      "defaultRepeatPolicy": "UP_TO_INVENTORY",
+      "threshold": {
+        "type": "ANY_OF",
+        "children": [
+          {
+            "type": "AMOUNT_AT_LEAST",
+            "amountCents": 4800
+          },
+          {
+            "type": "BOOK_COUNT_AT_LEAST",
+            "bookCount": 8
+          }
+        ]
+      }
+    },
+    {
+      "id": "platform-c",
+      "displayName": "平台C",
+      "ruleSummary": "预估金额满10.00元；同一ISBN每单最多1本",
+      "multipleOrdersAllowed": true,
+      "maxBooksPerOrder": null,
+      "defaultRepeatPolicy": "ONE_PER_ORDER",
+      "threshold": {
+        "type": "AMOUNT_AT_LEAST",
+        "amountCents": 1000
+      }
+    },
+    {
+      "id": "platform-d",
+      "displayName": "平台D",
+      "ruleSummary": "预估金额满39.90元，或每单至少10本",
+      "multipleOrdersAllowed": true,
+      "maxBooksPerOrder": null,
+      "defaultRepeatPolicy": "UP_TO_INVENTORY",
+      "threshold": {
+        "type": "ANY_OF",
+        "children": [
+          {
+            "type": "AMOUNT_AT_LEAST",
+            "amountCents": 3990
+          },
+          {
+            "type": "BOOK_COUNT_AT_LEAST",
+            "bookCount": 10
+          }
+        ]
+      }
+    },
+    {
+      "id": "platform-e",
+      "displayName": "平台E",
+      "ruleSummary": "预估金额满38.00元，或每单至少10本且均价不低于1.50元",
+      "multipleOrdersAllowed": true,
+      "maxBooksPerOrder": null,
+      "defaultRepeatPolicy": "UP_TO_INVENTORY",
+      "threshold": {
+        "type": "ANY_OF",
+        "children": [
+          {
+            "type": "AMOUNT_AT_LEAST",
+            "amountCents": 3800
+          },
+          {
+            "type": "ALL_OF",
+            "children": [
+              {
+                "type": "BOOK_COUNT_AT_LEAST",
+                "bookCount": 10
+              },
+              {
+                "type": "AVERAGE_PRICE_AT_LEAST",
+                "averagePriceCents": 150
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "offers": [
+    {
+      "platformId": "platform-a",
+      "isbn": "9787020002207",
+      "status": "ACCEPTED",
+      "unitPriceCents": 623,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787111544937",
+      "status": "ACCEPTED",
+      "unitPriceCents": 1663,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787508647357",
+      "status": "ACCEPTED",
+      "unitPriceCents": 737,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787534352362",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787303147533",
+      "status": "UNKNOWN",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_AVAILABILITY_UNKNOWN"
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787521333299",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787040396638",
+      "status": "ACCEPTED",
+      "unitPriceCents": 563,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787115621375",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787040599008",
+      "status": "ACCEPTED",
+      "unitPriceCents": 193,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787040599015",
+      "status": "ACCEPTED",
+      "unitPriceCents": 157,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-a",
+      "isbn": "9787521766912",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+
+    {
+      "platformId": "platform-b",
+      "isbn": "9787020002207",
+      "status": "ACCEPTED",
+      "unitPriceCents": 313,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787111544937",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787508647357",
+      "status": "ACCEPTED",
+      "unitPriceCents": 423,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787534352362",
+      "status": "ACCEPTED",
+      "unitPriceCents": 47,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787303147533",
+      "status": "ACCEPTED",
+      "unitPriceCents": 61,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787521333299",
+      "status": "ACCEPTED",
+      "unitPriceCents": 97,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787040396638",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787115621375",
+      "status": "ACCEPTED",
+      "unitPriceCents": 233,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787040599008",
+      "status": "ACCEPTED",
+      "unitPriceCents": 73,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787040599015",
+      "status": "ACCEPTED",
+      "unitPriceCents": 59,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-b",
+      "isbn": "9787521766912",
+      "status": "UNKNOWN",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_AVAILABILITY_UNKNOWN"
+    },
+
+    {
+      "platformId": "platform-c",
+      "isbn": "9787020002207",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787111544937",
+      "status": "ACCEPTED",
+      "unitPriceCents": 893,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787508647357",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787534352362",
+      "status": "ACCEPTED",
+      "unitPriceCents": 273,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787303147533",
+      "status": "ACCEPTED",
+      "unitPriceCents": 223,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787521333299",
+      "status": "ACCEPTED",
+      "unitPriceCents": 317,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787040396638",
+      "status": "UNKNOWN",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_AVAILABILITY_UNKNOWN"
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787115621375",
+      "status": "ACCEPTED",
+      "unitPriceCents": 487,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787040599008",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787040599015",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-c",
+      "isbn": "9787521766912",
+      "status": "ACCEPTED",
+      "unitPriceCents": 1423,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+
+    {
+      "platformId": "platform-d",
+      "isbn": "9787020002207",
+      "status": "ACCEPTED",
+      "unitPriceCents": 283,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787111544937",
+      "status": "ACCEPTED",
+      "unitPriceCents": 783,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787508647357",
+      "status": "ACCEPTED",
+      "unitPriceCents": 363,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787534352362",
+      "status": "ACCEPTED",
+      "unitPriceCents": 37,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787303147533",
+      "status": "ACCEPTED",
+      "unitPriceCents": 43,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787521333299",
+      "status": "UNKNOWN",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_AVAILABILITY_UNKNOWN"
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787040396638",
+      "status": "ACCEPTED",
+      "unitPriceCents": 243,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787115621375",
+      "status": "ACCEPTED",
+      "unitPriceCents": 213,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787040599008",
+      "status": "ACCEPTED",
+      "unitPriceCents": 67,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787040599015",
+      "status": "ACCEPTED",
+      "unitPriceCents": 53,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-d",
+      "isbn": "9787521766912",
+      "status": "ACCEPTED",
+      "unitPriceCents": 623,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+
+    {
+      "platformId": "platform-e",
+      "isbn": "9787020002207",
+      "status": "ACCEPTED",
+      "unitPriceCents": 403,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787111544937",
+      "status": "ACCEPTED",
+      "unitPriceCents": 907,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787508647357",
+      "status": "ACCEPTED",
+      "unitPriceCents": 457,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787534352362",
+      "status": "ACCEPTED",
+      "unitPriceCents": 163,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787303147533",
+      "status": "REJECTED",
+      "unitPriceCents": 0,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": "SYNTHETIC_NOT_ACCEPTED"
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787521333299",
+      "status": "ACCEPTED",
+      "unitPriceCents": 183,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787040396638",
+      "status": "ACCEPTED",
+      "unitPriceCents": 313,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787115621375",
+      "status": "ACCEPTED",
+      "unitPriceCents": 263,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787040599008",
+      "status": "ACCEPTED",
+      "unitPriceCents": 167,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787040599015",
+      "status": "ACCEPTED",
+      "unitPriceCents": 143,
+      "repeatPolicy": "ONE_PER_ORDER",
+      "reasonCode": null
+    },
+    {
+      "platformId": "platform-e",
+      "isbn": "9787521766912",
+      "status": "ACCEPTED",
+      "unitPriceCents": 653,
+      "repeatPolicy": "INHERIT_PLATFORM",
+      "reasonCode": null
+    }
+  ],
+  "suggestedInventory": [
+    {
+      "isbn": "9787020002207",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787111544937",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787508647357",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787534352362",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787303147533",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787521333299",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787040396638",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787115621375",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787040599008",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787040599015",
+      "quantity": 1
+    },
+    {
+      "isbn": "9787521766912",
+      "quantity": 1
+    }
+  ]
+}

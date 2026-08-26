@@ -1,0 +1,25 @@
+{
+  "name": "二手书回收决策系统",
+  "appid": "__UNI__BOOKDECISION",
+  "description": "用于作品演示的二手书回收组合决策客户端",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "uniStatistics": {
+    "enable": false
+  },
+  "h5": {
+    "router": {
+      "mode": "hash"
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true
+  }
+}

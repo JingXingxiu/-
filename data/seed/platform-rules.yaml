@@ -1,0 +1,100 @@
+schema_version: 1
+rule_snapshot: observed-2026-08-09-v1
+amount_unit: CNY_CENT
+
+platforms:
+  - id: xiaoguya
+    display_name: 小谷吖
+    collected_at: 2026-08-09
+    source_uri: "#小程序://小谷吖/ESxo7yFO2r5UPpE"
+    region: NATIONWIDE_USER_REPORTED
+    settlement: CASH_WITHDRAWAL
+    multiple_orders_allowed: true
+    max_book_count_per_order: 40
+    duplicate_policy: PER_OFFER
+    valid_order_modes:
+      - id: estimated_amount
+        min_estimated_amount_cent: 2000
+    pickup_fee_cent: 0
+    return_policy_note: 首单在72小时内申请退回免费，后续退回自负邮费
+
+  - id: jiumentishu
+    display_name: 九门提书
+    collected_at: 2026-08-09
+    source_uri: "#小程序://九门提书/q4OKglixWs9nbcG"
+    region: NATIONWIDE_USER_REPORTED
+    settlement: CASH_WITHDRAWAL
+    multiple_orders_allowed: true
+    max_book_count_per_order: null
+    duplicate_policy: ALLOW_MULTIPLE
+    valid_order_modes:
+      - id: estimated_amount
+        min_estimated_amount_cent: 4800
+      - id: accepted_book_count
+        min_accepted_book_count: 8
+    pickup_fee_cent: 0
+    return_policy_note: 72小时内可申请退回，退回运费自付
+
+  - id: aihuishou
+    display_name: 爱回收
+    collected_at: 2026-08-09
+    source_uri: "#小程序://爱回收/zKmL1Sv8neQO73n"
+    region: NATIONWIDE_USER_REPORTED
+    settlement: CASH_WITHDRAWAL
+    multiple_orders_allowed: true
+    max_book_count_per_order: null
+    duplicate_policy: MAX_ONE_PER_ISBN_PER_ORDER
+    valid_order_modes:
+      - id: estimated_amount
+        min_estimated_amount_cent: 1000
+    pickup_fee_cent: 0
+    return_policy_note: 72小时内可申请退回，首次退回免费
+
+  - id: jiushuyun
+    display_name: 旧书云
+    collected_at: 2026-08-09
+    source_uri: "#小程序://旧书云/n8xBEO77fCUUq6C"
+    region: NATIONWIDE_USER_REPORTED
+    settlement: CASH_WITHDRAWAL
+    multiple_orders_allowed: true
+    max_book_count_per_order: null
+    duplicate_policy: ALLOW_MULTIPLE
+    valid_order_modes:
+      - id: estimated_amount
+        min_estimated_amount_cent: 3990
+      - id: accepted_book_count
+        min_accepted_book_count: 10
+    pickup_fee_cent: 0
+    return_policy_note: 72小时内可申请退回，首次退回免费
+
+  - id: taoshupu
+    display_name: 掏书铺
+    collected_at: 2026-08-09
+    source_uri: "#小程序://掏书铺/9LvD2hYqdrAUnpl"
+    region: NATIONWIDE_USER_REPORTED
+    settlement: CASH_WITHDRAWAL
+    multiple_orders_allowed: true
+    max_book_count_per_order: null
+    duplicate_policy: PER_OFFER
+    valid_order_modes:
+      - id: estimated_amount
+        min_estimated_amount_cent: 3800
+      - id: count_and_average_price
+        min_accepted_book_count: 10
+        min_average_price_cent: 150
+    pickup_fee_cent: 0
+    return_policy_note: 首单退回免运费
+
+common_eligibility_notes:
+  - 扫码结果明确拒收时不能进入订单
+  - 影响正常阅读的实体书不应提交
+  - 来源非法的图书不应提交
+  - 无法验证为正版的图书不应提交
+
+modeling_assumptions:
+  - 每个拆分订单必须单独满足该平台至少一个有效订单模式
+  - 金额门槛按订单内书籍的预估报价总和计算
+  - 数量门槛按订单内已确认接收的实体册数量计算
+  - 所有有效订单的上门费用按0分计算
+  - 到仓复检降价、拒收和退回费用不进入第一阶段确定性求解
+  - 未给出订单上限的平台在第一阶段不设置数量上限

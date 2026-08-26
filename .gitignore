@@ -1,0 +1,33 @@
+# Java / Maven
+**/target/
+**/hs_err_pid*.log
+**/*.dumpstream
+
+# IntelliJ IDEA
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Private project notes kept locally but never published
+/.private/
+/.pnpm-store/
+
+# Node / uni-app frontend
+node_modules/
+dist/
+
+# Local runtime files
+*.log
+.env
+.env.*
+!.env.example
+/uploads/
+/minio-data/
+/postgres-data/
+/backups/
+*.dump
+
+# Local external configuration containing secrets
+/backend/config/application-local.yml

@@ -1,0 +1,40 @@
+# Copy to application-local.yml. That real file is ignored by Git.
+# Start with --spring.profiles.active=postgres and use a dedicated app database/user.
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/book_decision}
+    username: ${DB_USERNAME:book_decision_app}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+
+book-decision:
+  dataset:
+    provider: postgres
+  user-dataset:
+    enabled: ${USER_DATASET_ENABLED:true}
+    retention-days: ${USER_DATASET_RETENTION_DAYS:30}
+    upload-rate-limit:
+      max-uploads-per-window: ${USER_DATASET_RATE_LIMIT_MAX_UPLOADS:10}
+      window-seconds: ${USER_DATASET_RATE_LIMIT_WINDOW_SECONDS:60}
+    storage-quota:
+      max-retained-uploads: ${USER_DATASET_MAX_RETAINED_UPLOADS:100}
+      max-retained-bytes: ${USER_DATASET_MAX_RETAINED_BYTES:52428800}
+    minio:
+      endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      access-key: ${MINIO_ACCESS_KEY}
+      secret-key: ${MINIO_SECRET_KEY}
+      bucket: ${MINIO_BUCKET:book-decision-private-uploads}
+  admin:
+    enabled: ${ADMIN_API_ENABLED:false}
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  # Local review may use observed; public deployments should override this to alias.
+  platform-display-mode: ${PLATFORM_DISPLAY_MODE:observed}
+  # Optional: exact comma-separated H5 origins; wildcard origins are rejected at startup.
+  # web:
+  #   cors:
+  #     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
