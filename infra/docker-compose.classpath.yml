@@ -1,0 +1,22 @@
+name: books-classpath-demo
+
+services:
+  backend:
+    image: books-backend:classpath-demo
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+  web:
+    image: books-web:classpath-demo
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:18081:80"

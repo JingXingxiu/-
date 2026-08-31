@@ -1,0 +1,26 @@
+# Dependency and build output
+node_modules/
+dist/
+.pnpm-store/
+coverage/
+
+# Local configuration and logs
+.env
+.env.*
+*.env
+*.env.*
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor, VCS, and operating-system metadata
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Files outside the H5 production build
+README*
