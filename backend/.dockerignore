@@ -1,0 +1,28 @@
+# Maven output and JVM crash artifacts
+target/
+*.log
+hs_err_pid*.log
+*.dumpstream
+
+# Tests are executed on the host, not while building the runtime image
+src/test/
+
+# Local external configuration and environment files may contain credentials
+config/
+.env
+.env.*
+*.env
+*.env.*
+
+# IDE, VCS, and operating-system metadata
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Files that are not part of the backend runtime build
+README*
+docs/
