@@ -32,8 +32,8 @@ book-decision:
     enabled: ${ADMIN_API_ENABLED:false}
     username: ${ADMIN_USERNAME:}
     password: ${ADMIN_PASSWORD:}
-  # Local review may use observed; public deployments should override this to alias.
-  platform-display-mode: ${PLATFORM_DISPLAY_MODE:observed}
+  # Supported values: real or alias. The legacy observed value is accepted as real.
+  platform-display-mode: ${PLATFORM_DISPLAY_MODE:real}
   # Optional: exact comma-separated H5 origins; wildcard origins are rejected at startup.
   # web:
   #   cors:

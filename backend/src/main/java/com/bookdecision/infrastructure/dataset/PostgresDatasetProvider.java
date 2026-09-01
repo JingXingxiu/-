@@ -5,6 +5,8 @@ import com.bookdecision.application.dataset.CatalogBook;
 import com.bookdecision.application.dataset.DatasetDisclaimer;
 import com.bookdecision.application.dataset.DatasetProvider;
 import com.bookdecision.application.dataset.DatasetSnapshot;
+import com.bookdecision.application.dataset.PlatformDisplayMode;
+import com.bookdecision.application.dataset.PlatformRuleMetadata;
 import com.bookdecision.application.dataset.SourceKind;
 import com.bookdecision.domain.OfferStatus;
 import com.bookdecision.domain.OrderThreshold;
@@ -22,7 +24,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,23 +43,29 @@ import static com.bookdecision.domain.AmountUnits.CNY_CENT;
 )
 public final class PostgresDatasetProvider implements DatasetProvider {
 
+    private static final String OBSERVED_CATALOG_AND_RULE_SHAPES =
+            "OBSERVED_CATALOG_AND_RULE_SHAPES";
     private static final String SYNTHETIC_OFFER_MATRIX = "SYNTHETIC_OFFER_MATRIX";
-    private static final String OBSERVED_MODE_SYNTHETIC_NOTICE =
+    private static final String REAL_MODE_RULE_NOTICE =
+            "ISBN、书名和规则形状来自2026-08-09人工观察历史快照；规则可能已变化。";
+    private static final String REAL_MODE_SYNTHETIC_NOTICE =
             "报价、接收状态和逐书复本覆盖不是平台实时接口数据，可能来自固定合成数据矩阵或经审核发布的用户提交；"
                     + "展示名称仅用于标识人工观察规则来源，不代表对应平台提供、认可或授权这些数据。";
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
     private final PlatformDisplayMode displayMode;
+    private final PlatformRuleMetadataResource ruleMetadataResource;
 
     public PostgresDatasetProvider(
             JdbcClient jdbcClient,
             ObjectMapper objectMapper,
-            @Value("${book-decision.platform-display-mode:alias}") String displayMode
+            @Value("${book-decision.platform-display-mode:real}") String displayMode
     ) {
         this.jdbcClient = Objects.requireNonNull(jdbcClient, "jdbcClient must not be null");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
-        this.displayMode = PlatformDisplayMode.parse(displayMode);
+        this.displayMode = PlatformDisplayMode.parseConfiguration(displayMode);
+        this.ruleMetadataResource = PlatformRuleMetadataResource.load(objectMapper);
     }
 
     @Override
@@ -90,6 +97,12 @@ public final class PostgresDatasetProvider implements DatasetProvider {
         List<PlatformOffer> offers = loadOffers(datasetVersion);
         Map<String, String> ruleSummaries = platformRows.stream()
                 .collect(Collectors.toUnmodifiableMap(PlatformRow::id, PlatformRow::ruleSummary));
+        Set<String> platformIds = platformRows.stream()
+                .map(PlatformRow::id)
+                .collect(Collectors.toUnmodifiableSet());
+        validateRealNames(platformRows);
+        Map<String, PlatformRuleMetadata> ruleMetadata =
+                ruleMetadataResource.metadataFor(displayMode, platformIds);
 
         DatasetSnapshot snapshot = new DatasetSnapshot(
                 value.version(),
@@ -98,7 +111,9 @@ public final class PostgresDatasetProvider implements DatasetProvider {
                 catalog,
                 platforms,
                 offers,
-                ruleSummaries
+                ruleSummaries,
+                displayMode,
+                ruleMetadata
         );
         validateCompleteMatrix(snapshot);
         return Optional.of(snapshot);
@@ -117,14 +132,23 @@ public final class PostgresDatasetProvider implements DatasetProvider {
                         resultSet.getString("text")
                 ))
                 .list();
-        if (displayMode != PlatformDisplayMode.OBSERVED) {
+        if (displayMode != PlatformDisplayMode.REAL) {
             return disclaimers;
         }
         return disclaimers.stream()
-                .map(disclaimer -> SYNTHETIC_OFFER_MATRIX.equals(disclaimer.code())
-                        ? new DatasetDisclaimer(disclaimer.code(), OBSERVED_MODE_SYNTHETIC_NOTICE)
-                        : disclaimer)
+                .map(this::realModeDisclaimer)
                 .toList();
+    }
+
+    private DatasetDisclaimer realModeDisclaimer(DatasetDisclaimer disclaimer) {
+        String text = switch (disclaimer.code()) {
+            case OBSERVED_CATALOG_AND_RULE_SHAPES -> REAL_MODE_RULE_NOTICE;
+            case SYNTHETIC_OFFER_MATRIX -> REAL_MODE_SYNTHETIC_NOTICE;
+            default -> disclaimer.text();
+        };
+        return text.equals(disclaimer.text())
+                ? disclaimer
+                : new DatasetDisclaimer(disclaimer.code(), text);
     }
 
     private List<CatalogBook> loadCatalog(String version) {
@@ -186,7 +210,7 @@ public final class PostgresDatasetProvider implements DatasetProvider {
     }
 
     private PlatformRule mapPlatform(PlatformRow row) {
-        String displayName = displayMode == PlatformDisplayMode.OBSERVED
+        String displayName = displayMode == PlatformDisplayMode.REAL
                 ? row.observedName()
                 : row.publicAlias();
         OptionalInt maxBooks = row.maxBooksPerOrder() == null
@@ -203,6 +227,17 @@ public final class PostgresDatasetProvider implements DatasetProvider {
                         "platform default repeat policy"
                 )
         );
+    }
+
+    private void validateRealNames(List<PlatformRow> rows) {
+        rows.forEach(row -> {
+            String verifiedName = ruleMetadataResource.realDisplayName(row.id());
+            if (!verifiedName.equals(row.observedName())) {
+                throw new IllegalStateException(
+                        "platform observed name does not match verified rule metadata for " + row.id()
+                );
+            }
+        });
     }
 
     private OrderThreshold parseThreshold(String thresholdJson) {
@@ -317,24 +352,6 @@ public final class PostgresDatasetProvider implements DatasetProvider {
             return Enum.valueOf(type, text);
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException(field + " has unsupported value: " + text, exception);
-        }
-    }
-
-    private enum PlatformDisplayMode {
-        OBSERVED,
-        ALIAS;
-
-        private static PlatformDisplayMode parse(String value) {
-            String text = requireText(value, "book-decision.platform-display-mode")
-                    .toUpperCase(Locale.ROOT);
-            try {
-                return valueOf(text);
-            } catch (IllegalArgumentException exception) {
-                throw new IllegalArgumentException(
-                        "book-decision.platform-display-mode must be observed or alias",
-                        exception
-                );
-            }
         }
     }
 

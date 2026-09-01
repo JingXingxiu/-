@@ -44,7 +44,7 @@ class OfferLookupApiIntegrationTest {
                 .andExpect(jsonPath("$.books[0].catalogStatus").value("FOUND"))
                 .andExpect(jsonPath("$.books[0].offers", hasSize(5)))
                 .andExpect(jsonPath("$.books[0].offers[0].platformCode").value("platform-a"))
-                .andExpect(jsonPath("$.books[0].offers[0].platformDisplayName").value("平台A"))
+                .andExpect(jsonPath("$.books[0].offers[0].platformDisplayName").value("小谷吖"))
                 .andExpect(jsonPath("$.books[0].offers[0].status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.books[0].offers[0].unitPriceCents").value(1663))
                 .andExpect(jsonPath("$.books[0].offers[1].status").value("REJECTED"))

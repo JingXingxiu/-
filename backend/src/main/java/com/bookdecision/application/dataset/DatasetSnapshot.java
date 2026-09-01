@@ -18,7 +18,9 @@ public record DatasetSnapshot(
         List<CatalogBook> catalog,
         List<PlatformRule> platforms,
         List<PlatformOffer> offers,
-        Map<String, String> platformRuleSummaries
+        Map<String, String> platformRuleSummaries,
+        PlatformDisplayMode platformDisplayMode,
+        Map<String, PlatformRuleMetadata> platformRuleMetadata
 ) {
 
     public DatasetSnapshot {
@@ -35,6 +37,9 @@ public record DatasetSnapshot(
         }
         Objects.requireNonNull(platformRuleSummaries, "platformRuleSummaries must not be null");
         platformRuleSummaries = Map.copyOf(platformRuleSummaries);
+        Objects.requireNonNull(platformDisplayMode, "platformDisplayMode must not be null");
+        Objects.requireNonNull(platformRuleMetadata, "platformRuleMetadata must not be null");
+        platformRuleMetadata = Map.copyOf(platformRuleMetadata);
 
         ensureUnique(catalog.stream().map(CatalogBook::isbn).toList(), "catalog ISBN");
         ensureUnique(platforms.stream().map(PlatformRule::id).toList(), "platform id");
@@ -60,6 +65,44 @@ public record DatasetSnapshot(
         if (platformRuleSummaries.values().stream().anyMatch(value -> value == null || value.isBlank())) {
             throw new IllegalArgumentException("platform rule summaries must not be blank");
         }
+        if (!platformRuleMetadata.keySet().equals(platformIds)) {
+            throw new IllegalArgumentException("platformRuleMetadata must contain exactly one entry per platform");
+        }
+        if (platformRuleMetadata.values().stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("platformRuleMetadata must not contain null values");
+        }
+    }
+
+    /** Compatibility constructor for isolated tests and adapters without provenance metadata. */
+    public DatasetSnapshot(
+            String version,
+            SourceKind sourceKind,
+            List<DatasetDisclaimer> disclaimers,
+            List<CatalogBook> catalog,
+            List<PlatformRule> platforms,
+            List<PlatformOffer> offers,
+            Map<String, String> platformRuleSummaries
+    ) {
+        this(
+                version,
+                sourceKind,
+                disclaimers,
+                catalog,
+                platforms,
+                offers,
+                platformRuleSummaries,
+                PlatformDisplayMode.REAL,
+                platforms.stream().collect(Collectors.toUnmodifiableMap(
+                        PlatformRule::id,
+                        ignored -> new PlatformRuleMetadata(
+                                null,
+                                null,
+                                null,
+                                "该数据集未记录规则来源",
+                                null
+                        )
+                ))
+        );
     }
 
     /** Convenience constructor for a provider that only has one legacy notice. */
@@ -79,7 +122,18 @@ public record DatasetSnapshot(
                 catalog,
                 platforms,
                 offers,
-                platformRuleSummaries
+                platformRuleSummaries,
+                PlatformDisplayMode.REAL,
+                platforms.stream().collect(Collectors.toUnmodifiableMap(
+                        PlatformRule::id,
+                        ignored -> new PlatformRuleMetadata(
+                                null,
+                                null,
+                                null,
+                                "该数据集未记录规则来源",
+                                null
+                        )
+                ))
         );
     }
 

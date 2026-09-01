@@ -5,12 +5,16 @@ import com.bookdecision.application.dataset.CatalogBook;
 import com.bookdecision.application.dataset.DatasetDisclaimer;
 import com.bookdecision.application.dataset.DatasetProvider;
 import com.bookdecision.application.dataset.DatasetSnapshot;
+import com.bookdecision.application.dataset.PlatformDisplayMode;
+import com.bookdecision.application.dataset.PlatformRuleMetadata;
 import com.bookdecision.application.dataset.SourceKind;
 import com.bookdecision.domain.OfferStatus;
 import com.bookdecision.domain.OrderThreshold;
 import com.bookdecision.domain.PlatformOffer;
 import com.bookdecision.domain.PlatformRule;
 import com.bookdecision.domain.RepeatPolicy;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import tools.jackson.databind.ObjectMapper;
@@ -56,13 +60,32 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
             "NOT_REAL_TIME_QUOTES",
             "ESTIMATE_NOT_SETTLEMENT"
     );
+    private static final String OBSERVED_CATALOG_AND_RULE_SHAPES =
+            "OBSERVED_CATALOG_AND_RULE_SHAPES";
+    private static final String SYNTHETIC_OFFER_MATRIX = "SYNTHETIC_OFFER_MATRIX";
+    private static final String REAL_MODE_RULE_NOTICE =
+            "ISBN、书名和规则形状来自2026-08-09人工观察历史快照；规则可能已变化。";
+    private static final String REAL_MODE_SYNTHETIC_NOTICE =
+            "报价、接收状态和逐书复本覆盖为固定合成数据；展示名称仅用于标识人工观察规则来源，"
+                    + "不代表对应平台提供、认可或授权这些数据。";
 
     private final Map<String, DatasetSnapshot> datasetsByVersion;
 
-    public ClasspathJsonDatasetProvider(ObjectMapper objectMapper) {
+    @Autowired
+    public ClasspathJsonDatasetProvider(
+            ObjectMapper objectMapper,
+            @Value("${book-decision.platform-display-mode:real}") String configuredDisplayMode
+    ) {
         Objects.requireNonNull(objectMapper, "objectMapper must not be null");
-        DatasetSnapshot snapshot = loadClasspathSnapshot(objectMapper);
+        PlatformDisplayMode displayMode = PlatformDisplayMode.parseConfiguration(configuredDisplayMode);
+        PlatformRuleMetadataResource ruleMetadataResource = PlatformRuleMetadataResource.load(objectMapper);
+        DatasetSnapshot snapshot = loadClasspathSnapshot(objectMapper, displayMode, ruleMetadataResource);
         this.datasetsByVersion = Map.of(snapshot.version(), snapshot);
+    }
+
+    /** Direct-construction convenience used by focused unit tests; production default is also real. */
+    public ClasspathJsonDatasetProvider(ObjectMapper objectMapper) {
+        this(objectMapper, "real");
     }
 
     @Override
@@ -73,14 +96,18 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
         return Optional.ofNullable(datasetsByVersion.get(datasetVersion));
     }
 
-    private static DatasetSnapshot loadClasspathSnapshot(ObjectMapper objectMapper) {
+    private static DatasetSnapshot loadClasspathSnapshot(
+            ObjectMapper objectMapper,
+            PlatformDisplayMode displayMode,
+            PlatformRuleMetadataResource ruleMetadataResource
+    ) {
         ClassLoader classLoader = ClasspathJsonDatasetProvider.class.getClassLoader();
         try (InputStream input = classLoader.getResourceAsStream(RESOURCE_PATH)) {
             if (input == null) {
                 throw new IllegalStateException("classpath dataset not found: " + RESOURCE_PATH);
             }
             DatasetFile file = objectMapper.readValue(input, DatasetFile.class);
-            return mapAndValidate(file);
+            return mapAndValidate(file, displayMode, ruleMetadataResource);
         } catch (IllegalStateException exception) {
             throw exception;
         } catch (Exception exception) {
@@ -91,7 +118,11 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
         }
     }
 
-    private static DatasetSnapshot mapAndValidate(DatasetFile file) {
+    private static DatasetSnapshot mapAndValidate(
+            DatasetFile file,
+            PlatformDisplayMode displayMode,
+            PlatformRuleMetadataResource ruleMetadataResource
+    ) {
         Objects.requireNonNull(file, "dataset file must not be null");
         require(file.schemaVersion() == 1, "schemaVersion must be 1");
         require(SUPPORTED_VERSION.equals(file.datasetVersion()),
@@ -110,7 +141,10 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
 
         List<DatasetDisclaimer> disclaimers = requireList(file.disclaimers(), "disclaimers")
                 .stream()
-                .map(value -> new DatasetDisclaimer(value.code(), value.text()))
+                .map(value -> new DatasetDisclaimer(
+                        value.code(),
+                        realModeDisclaimer(value, displayMode)
+                ))
                 .toList();
         Set<String> disclaimerCodes = disclaimers.stream()
                 .map(DatasetDisclaimer::code)
@@ -124,7 +158,7 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
 
         List<JsonPlatform> jsonPlatforms = requireList(file.platforms(), "platforms");
         List<PlatformRule> platforms = jsonPlatforms.stream()
-                .map(ClasspathJsonDatasetProvider::mapPlatform)
+                .map(platform -> mapPlatform(platform, displayMode, ruleMetadataResource))
                 .toList();
         Map<String, String> platformRuleSummaries = jsonPlatforms.stream()
                 .collect(Collectors.toUnmodifiableMap(
@@ -135,6 +169,11 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
         List<PlatformOffer> offers = requireList(file.offers(), "offers").stream()
                 .map(ClasspathJsonDatasetProvider::mapOffer)
                 .toList();
+        Set<String> platformIds = jsonPlatforms.stream()
+                .map(JsonPlatform::id)
+                .collect(Collectors.toUnmodifiableSet());
+        Map<String, PlatformRuleMetadata> ruleMetadata =
+                ruleMetadataResource.metadataFor(displayMode, platformIds);
 
         DatasetSnapshot snapshot = new DatasetSnapshot(
                 file.datasetVersion(),
@@ -143,18 +182,41 @@ public final class ClasspathJsonDatasetProvider implements DatasetProvider {
                 catalog,
                 platforms,
                 offers,
-                platformRuleSummaries
+                platformRuleSummaries,
+                displayMode,
+                ruleMetadata
         );
         validateFixedMatrix(snapshot);
         validateUnsupportedEngineFields(file, snapshot);
         return snapshot;
     }
 
-    private static PlatformRule mapPlatform(JsonPlatform platform) {
+    private static String realModeDisclaimer(
+            JsonDisclaimer disclaimer,
+            PlatformDisplayMode displayMode
+    ) {
+        if (displayMode != PlatformDisplayMode.REAL) {
+            return disclaimer.text();
+        }
+        return switch (disclaimer.code()) {
+            case OBSERVED_CATALOG_AND_RULE_SHAPES -> REAL_MODE_RULE_NOTICE;
+            case SYNTHETIC_OFFER_MATRIX -> REAL_MODE_SYNTHETIC_NOTICE;
+            default -> disclaimer.text();
+        };
+    }
+
+    private static PlatformRule mapPlatform(
+            JsonPlatform platform,
+            PlatformDisplayMode displayMode,
+            PlatformRuleMetadataResource ruleMetadataResource
+    ) {
         require(platform.multipleOrdersAllowed(),
                 "all demo platforms must allow multiple independently valid orders");
         String id = requireText(platform.id(), "platform id");
-        String name = requireText(platform.displayName(), "platform displayName");
+        String alias = requireText(platform.displayName(), "platform displayName");
+        String name = displayMode == PlatformDisplayMode.REAL
+                ? ruleMetadataResource.realDisplayName(id)
+                : alias;
         OrderThreshold threshold = mapThreshold(platform.threshold());
         RepeatPolicy repeatPolicy = parseEnum(
                 RepeatPolicy.class,

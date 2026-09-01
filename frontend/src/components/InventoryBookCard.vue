@@ -132,11 +132,15 @@ defineEmits<{
 
 .remove-button {
   flex: none;
-  padding: 8rpx 4rpx;
-  background: transparent;
-  color: #9b554e;
-  font-size: 24rpx;
-  line-height: 1;
+  height: 50rpx;
+  margin: 0;
+  padding: 0 15rpx;
+  border: 1px solid rgba(145, 92, 85, 0.32);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.55);
+  color: #8f5d57;
+  font-size: 20rpx;
+  line-height: 48rpx;
 }
 
 .remove-button[disabled] {

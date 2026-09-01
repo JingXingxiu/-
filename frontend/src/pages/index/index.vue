@@ -6,13 +6,16 @@ import InventoryBookCard from '@/components/InventoryBookCard.vue'
 import {
   ApiError,
   loadUserDatasetSession,
+  loadDemoCatalog,
   lookupOffers,
   requestDecisionOptions,
 } from '@/services/api'
 import { scanBookIsbn } from '@/services/scanner'
 import type {
+  CatalogPlatform,
   DataSelection,
   DecisionOptionsResponse,
+  DemoCatalogResponse,
   Disclaimer,
   InventoryEntry,
   UserDatasetBook,
@@ -52,6 +55,11 @@ const decisionBusy = ref(false)
 const lookupError = ref('')
 const decisionError = ref('')
 const decisionOptions = ref<DecisionOptionsResponse | null>(null)
+const catalog = ref<DemoCatalogResponse | null>(null)
+const catalogBusy = ref(false)
+const catalogError = ref('')
+const ruleDialogOpen = ref(false)
+const rulePlatformCode = ref('')
 const inventoryRevision = ref(0)
 const offersReady = ref(true)
 const datasetSession = ref<UserDatasetSession>(restoredDatasetSession)
@@ -62,6 +70,9 @@ const totalCopies = computed(() => knownInventory.value.reduce((sum, item) => su
 const unknownCount = computed(() => inventory.value.length - knownInventory.value.length)
 const interactionBusy = computed(() => lookupBusy.value || decisionBusy.value)
 const canDecide = computed(() => totalCopies.value > 0 && offersReady.value && !interactionBusy.value)
+const activeRule = computed<CatalogPlatform | null>(() => (
+  catalog.value?.platforms.find((platform) => platform.platformCode === rulePlatformCode.value) ?? null
+))
 const datasetModeTitle = computed(() => {
   if (datasetSession.value.dataMode === 'USER_ONLY') {
     return '仅用我的报价'
@@ -227,7 +238,8 @@ function clearInventory(): void {
   uni.showModal({
     title: '清空书单？',
     content: '已录入的书籍和当前方案都会被清除。',
-    confirmColor: '#236b4e',
+    confirmText: '确认清空',
+    confirmColor: '#955b55',
     success: ({ confirm }) => {
       if (confirm) {
         inventory.value = []
@@ -238,6 +250,49 @@ function clearInventory(): void {
       }
     },
   })
+}
+
+async function showPlatformRules(platformCode: string): Promise<void> {
+  rulePlatformCode.value = platformCode
+  ruleDialogOpen.value = true
+  catalogError.value = ''
+  if (catalog.value) {
+    if (!activeRule.value) {
+      catalogError.value = '当前数据版本没有找到这个平台的规则快照'
+    }
+    return
+  }
+  if (catalogBusy.value) {
+    return
+  }
+
+  catalogBusy.value = true
+  try {
+    catalog.value = await loadDemoCatalog()
+    if (!activeRule.value) {
+      catalogError.value = '当前数据版本没有找到这个平台的规则快照'
+    }
+  } catch (error) {
+    catalogError.value = errorMessage(error)
+  } finally {
+    catalogBusy.value = false
+  }
+}
+
+function closeRuleDialog(): void {
+  ruleDialogOpen.value = false
+}
+
+function retryPlatformRules(): void {
+  catalog.value = null
+  void showPlatformRules(rulePlatformCode.value)
+}
+
+function collectedAtText(value: string | null): string {
+  if (!value) {
+    return '现有快照未记录'
+  }
+  return value
 }
 
 async function calculateOptions(): Promise<void> {
@@ -397,7 +452,7 @@ onShow(() => {
       <view class="hero__glow hero__glow--two" />
       <view class="hero__content">
         <view class="brand-line">
-          <view class="brand-mark">书</view>
+          <image class="brand-mark" src="/static/book-decision-logo.png" mode="aspectFit" />
           <text>二手书回收决策系统</text>
         </view>
         <text class="hero__title">先看谁收，{{ '\n' }}再决定怎么卖。</text>
@@ -444,7 +499,7 @@ onShow(() => {
           <!-- #endif -->
         </view>
 
-        <button class="text-button" :disabled="interactionBusy" @click="fillDemoIsbns">填入 6 本演示书籍</button>
+        <button class="demo-button" :disabled="interactionBusy" @click="fillDemoIsbns">填入 6 本演示书籍</button>
 
         <view v-if="lookupError" class="error-banner">
           <text class="error-banner__icon">!</text>
@@ -539,6 +594,7 @@ onShow(() => {
             :key="plan.kind"
             :plan="plan"
             :index="index"
+            @view-rules="showPlatformRules"
           />
         </view>
 
@@ -554,7 +610,54 @@ onShow(() => {
 
       <view class="footer-note">
         <text>作品演示 · 非实时交易建议</text>
-        <text>报价与接收状态以数据集声明为准</text>
+        <text>本项目与相关平台无合作或授权关系；数据为人工采样的历史快照，不是实时官方报价，实际结果以平台为准。</text>
+      </view>
+    </view>
+
+    <view v-if="ruleDialogOpen" class="rule-dialog-backdrop" @click="closeRuleDialog">
+      <view class="rule-dialog" @click.stop>
+        <view class="rule-dialog__head">
+          <view>
+            <text class="rule-dialog__eyebrow">PLATFORM RULE SNAPSHOT</text>
+            <text class="rule-dialog__title">{{ activeRule?.platformDisplayName || '平台规则' }}</text>
+          </view>
+          <button class="rule-dialog__close" aria-label="关闭规则详情" @click="closeRuleDialog">×</button>
+        </view>
+
+        <view v-if="catalogBusy" class="rule-dialog__state">正在读取规则快照…</view>
+        <view v-else-if="catalogError" class="rule-dialog__state rule-dialog__state--error">
+          <text>{{ catalogError }}</text>
+          <button class="rule-dialog__retry" @click="retryPlatformRules">重新加载</button>
+        </view>
+        <view v-else-if="activeRule" class="rule-detail-list">
+          <view class="rule-detail">
+            <text class="rule-detail__label">拒收条件</text>
+            <text class="rule-detail__value">{{ activeRule.rejectionConditions || '现有快照未记录' }}</text>
+          </view>
+          <view class="rule-detail">
+            <text class="rule-detail__label">重复书策略</text>
+            <text class="rule-detail__value">{{ activeRule.repeatPolicyDescription || '现有快照未记录' }}</text>
+          </view>
+          <view class="rule-detail">
+            <text class="rule-detail__label">起送 / 免上门费条件</text>
+            <text class="rule-detail__value">{{ activeRule.ruleSummary }}</text>
+          </view>
+          <view class="rule-detail">
+            <text class="rule-detail__label">采集时间</text>
+            <text class="rule-detail__value">{{ collectedAtText(activeRule.collectedAt) }}</text>
+          </view>
+          <view class="rule-detail">
+            <text class="rule-detail__label">来源</text>
+            <text class="rule-detail__value">{{ activeRule.sourceDescription }}</text>
+            <text v-if="activeRule.sourceReference" class="rule-detail__reference">{{ activeRule.sourceReference }}</text>
+          </view>
+          <view class="rule-detail">
+            <text class="rule-detail__label">数据版本</text>
+            <text class="rule-detail__value">{{ catalog?.datasetVersion }}</text>
+          </view>
+        </view>
+
+        <text class="rule-dialog__notice">规则与报价均为历史快照，实际接收范围和下单条件请以平台当前页面为准。</text>
       </view>
     </view>
   </view>
@@ -634,17 +737,10 @@ onShow(() => {
 }
 
 .brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48rpx;
-  height: 48rpx;
+  display: block;
+  width: 54rpx;
+  height: 54rpx;
   margin-right: 14rpx;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  border-radius: 14rpx 14rpx 14rpx 4rpx;
-  color: #f6f0df;
-  font-family: serif;
-  font-size: 25rpx;
 }
 
 .hero__title {
@@ -880,13 +976,23 @@ onShow(() => {
   font-size: 24rpx;
 }
 
-.text-button {
-  margin-top: 14rpx;
-  padding: 12rpx 2rpx;
-  background: transparent;
-  color: #47745e;
+.demo-button {
+  display: inline-block;
+  height: 62rpx;
+  margin: 16rpx 0 0;
+  padding: 0 20rpx;
+  border: 1px solid #b9c9be;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #426d57;
   font-size: 23rpx;
-  line-height: 1.4;
+  line-height: 60rpx;
+}
+
+.demo-button[disabled] {
+  border-color: #d8ded9;
+  color: #a1aaa4;
+  opacity: 1;
 }
 
 .error-banner,
@@ -951,11 +1057,22 @@ onShow(() => {
 }
 
 .clear-button {
-  padding: 10rpx 4rpx;
-  background: transparent;
-  color: #986057;
-  font-size: 23rpx;
-  line-height: 1;
+  flex: none;
+  height: 58rpx;
+  margin: 0;
+  padding: 0 19rpx;
+  border: 1px solid rgba(145, 92, 85, 0.38);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.52);
+  color: #8e5f59;
+  font-size: 21rpx;
+  line-height: 56rpx;
+}
+
+.clear-button[disabled] {
+  border-color: #d5d9d6;
+  color: #aeb5b0;
+  opacity: 1;
 }
 
 .inventory-list,
@@ -1154,6 +1271,151 @@ onShow(() => {
   text-align: center;
 }
 
+.footer-note text:last-child {
+  max-width: 820rpx;
+  margin-top: 5rpx;
+}
+
+.rule-dialog-backdrop {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-top: env(safe-area-inset-top);
+  background: rgba(13, 29, 20, 0.46);
+}
+
+.rule-dialog {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: calc(88vh - env(safe-area-inset-top));
+  overflow-y: auto;
+  padding: 30rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-radius: 30rpx 30rpx 0 0;
+  background: #fbfcf9;
+  box-shadow: 0 -20rpx 55rpx rgba(12, 31, 20, 0.2);
+}
+
+.rule-dialog__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.rule-dialog__eyebrow,
+.rule-dialog__title {
+  display: block;
+}
+
+.rule-dialog__eyebrow {
+  color: #4f8065;
+  font-size: 18rpx;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.rule-dialog__title {
+  margin-top: 6rpx;
+  color: #19271f;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.rule-dialog__close {
+  flex: none;
+  width: 62rpx;
+  height: 62rpx;
+  margin: 0 0 0 20rpx;
+  padding: 0;
+  border: 1px solid #d7ddd7;
+  border-radius: 50%;
+  background: #fff;
+  color: #67736b;
+  font-size: 38rpx;
+  font-weight: 300;
+  line-height: 58rpx;
+}
+
+.rule-dialog__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 28rpx;
+  padding: 28rpx;
+  border-radius: 18rpx;
+  background: #eef2ed;
+  color: #617067;
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.rule-dialog__state--error {
+  background: #f8ece9;
+  color: #8c4942;
+}
+
+.rule-dialog__retry {
+  height: 54rpx;
+  margin: 15rpx 0 0;
+  padding: 0 18rpx;
+  border: 1px solid rgba(140, 73, 66, 0.3);
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.65);
+  color: inherit;
+  font-size: 20rpx;
+  line-height: 52rpx;
+}
+
+.rule-detail-list {
+  margin-top: 24rpx;
+  border-top: 1px solid #e3e7e2;
+}
+
+.rule-detail {
+  padding: 20rpx 2rpx;
+  border-bottom: 1px solid #e8ebe7;
+}
+
+.rule-detail__label,
+.rule-detail__value,
+.rule-detail__reference {
+  display: block;
+}
+
+.rule-detail__label {
+  color: #738078;
+  font-size: 20rpx;
+  font-weight: 650;
+}
+
+.rule-detail__value {
+  margin-top: 7rpx;
+  color: #27372e;
+  font-size: 24rpx;
+  line-height: 1.65;
+}
+
+.rule-detail__reference {
+  overflow-wrap: anywhere;
+  margin-top: 6rpx;
+  color: #71877a;
+  font-size: 20rpx;
+  line-height: 1.55;
+}
+
+.rule-dialog__notice {
+  display: block;
+  margin-top: 20rpx;
+  padding: 18rpx;
+  border-radius: 15rpx;
+  background: #f6f1e3;
+  color: #776b4d;
+  font-size: 20rpx;
+  line-height: 1.6;
+}
+
 @media (min-width: 768px) {
   .hero {
     padding-top: 72rpx;
@@ -1166,6 +1428,28 @@ onShow(() => {
 
   .main-content {
     margin-top: -48rpx;
+  }
+
+  .rule-dialog-backdrop {
+    align-items: center;
+    padding: 48rpx;
+  }
+
+  .rule-dialog {
+    width: min(680px, 100%);
+    max-height: min(760px, 88vh);
+    padding: 34px;
+    border-radius: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dataset-entry {
+    transition: none;
+  }
+
+  .dataset-entry:not(.dataset-entry--disabled):hover {
+    transform: none;
   }
 }
 </style>

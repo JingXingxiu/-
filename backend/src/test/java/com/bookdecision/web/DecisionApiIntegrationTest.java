@@ -36,9 +36,17 @@ class DecisionApiIntegrationTest {
                 .andExpect(jsonPath("$.objectivePolicyVersion").value(POLICY_VERSION))
                 .andExpect(jsonPath("$.engineVersion").value("cp-sat-lexicographic-v1"))
                 .andExpect(jsonPath("$.sourceKind").value("MIXED"))
+                .andExpect(jsonPath("$.platformDisplayMode").value("REAL"))
                 .andExpect(jsonPath("$.disclaimers", hasSize(4)))
                 .andExpect(jsonPath("$.books", hasSize(11)))
                 .andExpect(jsonPath("$.platforms", hasSize(5)))
+                .andExpect(jsonPath("$.platforms[0].platformDisplayName").value("小谷吖"))
+                .andExpect(jsonPath("$.platforms[0].rejectionConditions").value(containsString("来源非法")))
+                .andExpect(jsonPath("$.platforms[0].repeatPolicyDescription").value(containsString("有限限制")))
+                .andExpect(jsonPath("$.platforms[0].collectedAt").value("2026-08-09"))
+                .andExpect(jsonPath("$.platforms[0].sourceDescription").value("人工采样的小程序规则历史快照"))
+                .andExpect(jsonPath("$.platforms[0].sourceReference")
+                        .value("#小程序://小谷吖/ESxo7yFO2r5UPpE"))
                 .andExpect(jsonPath("$.suggestedInventory", hasSize(11)));
     }
 

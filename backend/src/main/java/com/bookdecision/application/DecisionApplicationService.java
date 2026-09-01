@@ -6,6 +6,7 @@ import com.bookdecision.application.dataset.DatasetProvider;
 import com.bookdecision.application.dataset.DatasetSelectionService;
 import com.bookdecision.application.dataset.DatasetSnapshot;
 import com.bookdecision.application.dataset.ResolvedDataset;
+import com.bookdecision.application.dataset.PlatformRuleMetadata;
 import com.bookdecision.domain.DecisionProblem;
 import com.bookdecision.domain.InventoryItem;
 import com.bookdecision.domain.OfferStatus;
@@ -63,11 +64,19 @@ public class DecisionApplicationService {
                 .toList();
         List<CatalogResult.Platform> platforms = dataset.platforms().stream()
                 .sorted(Comparator.comparing(PlatformRule::id))
-                .map(platform -> new CatalogResult.Platform(
-                        platform.id(),
-                        platform.name(),
-                        dataset.platformRuleSummaries().get(platform.id())
-                ))
+                .map(platform -> {
+                    PlatformRuleMetadata metadata = dataset.platformRuleMetadata().get(platform.id());
+                    return new CatalogResult.Platform(
+                            platform.id(),
+                            platform.name(),
+                            dataset.platformRuleSummaries().get(platform.id()),
+                            metadata.rejectionConditions(),
+                            metadata.repeatPolicyDescription(),
+                            metadata.collectedAt(),
+                            metadata.sourceDescription(),
+                            metadata.sourceReference()
+                    );
+                })
                 .toList();
         List<CatalogResult.SuggestedInventoryItem> suggestedInventory = books.stream()
                 .map(book -> new CatalogResult.SuggestedInventoryItem(book.isbn(), 1))
@@ -76,6 +85,7 @@ public class DecisionApplicationService {
                 dataset.version(),
                 DecisionPolicy.MAX_BOOKS_MONEY_PLATFORMS_ORDERS_V1,
                 dataset.sourceKind(),
+                dataset.platformDisplayMode(),
                 stableDisclaimers(dataset),
                 books,
                 platforms,

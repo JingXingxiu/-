@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { DecisionPlan } from '@/types/api'
 import { collapseIdenticalOrders, formatOrderNumbers } from '@/utils/orders'
@@ -10,8 +10,17 @@ const props = defineProps<{
   index: number
 }>()
 
+const emit = defineEmits<{
+  (event: 'view-rules', platformCode: string): void
+}>()
+
 const groupedOrders = computed(() => collapseIdenticalOrders(props.plan.decision.orders))
 const hasRepeatedOrders = computed(() => groupedOrders.value.some((group) => group.count > 1))
+const selectedOrderKey = ref('')
+
+function toggleOrderSelection(key: string): void {
+  selectedOrderKey.value = selectedOrderKey.value === key ? '' : key
+}
 </script>
 
 <template>
@@ -55,7 +64,11 @@ const hasRepeatedOrders = computed(() => groupedOrders.value.some((group) => gro
         v-for="group in groupedOrders"
         :key="group.key"
         class="order-stack"
-        :class="{ 'order-stack--repeated': group.count > 1 }"
+        :class="{
+          'order-stack--repeated': group.count > 1,
+          'order-stack--selected': selectedOrderKey === group.key,
+        }"
+        @click="toggleOrderSelection(group.key)"
       >
         <view v-if="group.count > 1" class="order-stack__layer order-stack__layer--far" />
         <view v-if="group.count > 1" class="order-stack__layer order-stack__layer--near" />
@@ -74,7 +87,14 @@ const hasRepeatedOrders = computed(() => groupedOrders.value.some((group) => gro
               <text>{{ formatMoney(group.order.estimatedAmountCents) }}</text>
             </view>
           </view>
-          <text class="order-card__rule">门槛：{{ group.order.ruleSummary }}</text>
+          <view class="order-card__rule-row">
+            <text class="order-card__rule">门槛：{{ group.order.ruleSummary }}</text>
+            <button
+              class="rule-button"
+              :aria-label="`查看${group.order.platformDisplayName}的平台规则`"
+              @click.stop="emit('view-rules', group.order.platformCode)"
+            >查看规则</button>
+          </view>
 
           <view class="line-list">
             <view v-for="line in group.order.lines" :key="line.isbn" class="line-item">
@@ -280,6 +300,15 @@ const hasRepeatedOrders = computed(() => groupedOrders.value.some((group) => gro
   border: 1px solid #e2e7e1;
   border-radius: 20rpx;
   background: #fcfdfb;
+  transform: translateY(0) scale(1);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+
+.order-stack--selected .order-card {
+  border-color: #8fb29d;
+  box-shadow: 0 12rpx 26rpx rgba(35, 107, 78, 0.12);
+  transform: translateY(-2rpx) scale(1.01);
 }
 
 .order-card__identity {
@@ -327,15 +356,56 @@ const hasRepeatedOrders = computed(() => groupedOrders.value.some((group) => gro
   line-height: 1.45;
 }
 
-.order-card__rule {
-  display: block;
+.order-card__rule-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 15rpx;
   padding: 13rpx 16rpx;
   border-radius: 12rpx;
   background: #f1f4ef;
+}
+
+.order-card__rule {
+  display: block;
+  min-width: 0;
+  padding-right: 16rpx;
   color: #637068;
   font-size: 22rpx;
   line-height: 1.5;
+}
+
+.rule-button {
+  flex: none;
+  min-width: 118rpx;
+  height: 54rpx;
+  margin: 0;
+  padding: 0 15rpx;
+  border: 1px solid #b9c9be;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.72);
+  color: #356b50;
+  font-size: 20rpx;
+  font-weight: 650;
+  line-height: 52rpx;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .order-stack--repeated:hover .order-card {
+    box-shadow: 0 15rpx 34rpx rgba(38, 70, 51, 0.13);
+    transform: translateY(-4rpx) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-card {
+    transition: none;
+  }
+
+  .order-stack--selected .order-card,
+  .order-stack--repeated:hover .order-card {
+    transform: none;
+  }
 }
 
 .line-list {

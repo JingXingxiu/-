@@ -13,7 +13,8 @@ spring:
 book-decision:
   dataset:
     provider: classpath
-  platform-display-mode: alias
+  # real uses verified observed text names; alias uses neutral platform A-E labels.
+  platform-display-mode: ${PLATFORM_DISPLAY_MODE:real}
   user-dataset:
     enabled: ${USER_DATASET_ENABLED:false}
     retention-days: ${USER_DATASET_RETENTION_DAYS:30}

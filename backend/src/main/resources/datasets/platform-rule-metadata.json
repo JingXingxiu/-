@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "platforms": [
+    {
+      "platformId": "platform-a",
+      "realDisplayName": "小谷吖",
+      "rejectionConditions": "扫码提示不回收时、影响正常阅读、来源非法（图书馆、政府部门）、无法验证是正版书籍",
+      "repeatPolicyDescription": "有限限制（部分 ISBN 可以一次性回收多本）",
+      "collectedAt": "2026-08-09",
+      "sourceDescription": "人工采样的小程序规则历史快照",
+      "sourceReference": "#小程序://小谷吖/ESxo7yFO2r5UPpE"
+    },
+    {
+      "platformId": "platform-b",
+      "realDisplayName": "九门提书",
+      "rejectionConditions": "扫码提示不回收时、影响正常阅读、来源非法（图书馆、政府部门）、无法验证是正版书籍",
+      "repeatPolicyDescription": "不限制，可以按库存数量回收",
+      "collectedAt": "2026-08-09",
+      "sourceDescription": "人工采样的小程序规则历史快照",
+      "sourceReference": "#小程序://九门提书/q4OKglixWs9nbcG"
+    },
+    {
+      "platformId": "platform-c",
+      "realDisplayName": "爱回收",
+      "rejectionConditions": "扫码提示不回收时、影响正常阅读、来源非法（图书馆、政府部门）、无法验证是正版书籍",
+      "repeatPolicyDescription": "完全限制，同一 ISBN 每单最多 1 本",
+      "collectedAt": "2026-08-09",
+      "sourceDescription": "人工采样的小程序规则历史快照",
+      "sourceReference": "#小程序://爱回收/zKmL1Sv8neQO73n"
+    },
+    {
+      "platformId": "platform-d",
+      "realDisplayName": "旧书云",
+      "rejectionConditions": "扫码提示不回收时、影响正常阅读、来源非法（图书馆、政府部门）、无法验证是正版书籍",
+      "repeatPolicyDescription": "不限制，可以按库存数量回收",
+      "collectedAt": "2026-08-09",
+      "sourceDescription": "人工采样的小程序规则历史快照",
+      "sourceReference": "#小程序://旧书云/n8xBEO77fCUUq6C"
+    },
+    {
+      "platformId": "platform-e",
+      "realDisplayName": "掏书铺",
+      "rejectionConditions": "扫码提示不回收时、影响正常阅读、来源非法（图书馆、政府部门）、无法验证是正版书籍",
+      "repeatPolicyDescription": "有限限制（部分 ISBN 可以一次性回收多本）",
+      "collectedAt": "2026-08-09",
+      "sourceDescription": "人工采样的小程序规则历史快照",
+      "sourceReference": "#小程序://掏书铺/9LvD2hYqdrAUnpl"
+    }
+  ]
+}

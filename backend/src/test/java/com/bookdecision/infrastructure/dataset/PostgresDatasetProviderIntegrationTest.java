@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Uses a disposable PostgreSQL 16 container and never connects to a developer-owned database. */
 @SpringBootTest(properties = {
         "book-decision.dataset.provider=postgres",
-        "book-decision.platform-display-mode=alias",
         "spring.flyway.enabled=true"
 })
 @ActiveProfiles("postgres")
@@ -71,7 +70,7 @@ class PostgresDatasetProviderIntegrationTest {
     MockMvc mockMvc;
 
     @Test
-    void flywaySeedsTheCompleteMixedSnapshotAndAliasIsTheDefaultPublicIdentity() {
+    void flywaySeedsTheCompleteMixedSnapshotAndRealNamesAreTheDefaultPublicIdentity() {
         assertThat(datasetProvider).isInstanceOf(PostgresDatasetProvider.class);
 
         DatasetSnapshot snapshot = datasetProvider.findByVersion("mixed-demo-v1").orElseThrow();
@@ -87,7 +86,7 @@ class PostgresDatasetProviderIntegrationTest {
         );
         assertThat(snapshot.platforms())
                 .extracting(PlatformRule::name)
-                .containsExactly("平台A", "平台B", "平台C", "平台D", "平台E");
+                .containsExactly("小谷吖", "九门提书", "爱回收", "旧书云", "掏书铺");
 
         assertThat(datasetProvider.findByVersion("missing-version")).isEmpty();
         assertThat(scalarCount("select count(*) from flyway_schema_history where success"))
@@ -98,14 +97,21 @@ class PostgresDatasetProviderIntegrationTest {
     }
 
     @Test
-    void displayModeCanSelectObservedNamesWithoutChangingStablePlatformIds() {
-        DatasetSnapshot aliased = datasetProvider.findByVersion("mixed-demo-v1").orElseThrow();
+    void displayModeCanSelectAliasAndLegacyObservedWithoutChangingStablePlatformIds() {
+        DatasetSnapshot real = datasetProvider.findByVersion("mixed-demo-v1").orElseThrow();
+        DatasetSnapshot aliased = new PostgresDatasetProvider(jdbcClient, objectMapper, "alias")
+                .findByVersion("mixed-demo-v1")
+                .orElseThrow();
         DatasetSnapshot observed = new PostgresDatasetProvider(jdbcClient, objectMapper, "observed")
                 .findByVersion("mixed-demo-v1")
                 .orElseThrow();
 
-        assertThat(observed.platforms()).extracting(PlatformRule::id)
-                .containsExactlyElementsOf(aliased.platforms().stream().map(PlatformRule::id).toList());
+        assertThat(aliased.platforms()).extracting(PlatformRule::id)
+                .containsExactlyElementsOf(real.platforms().stream().map(PlatformRule::id).toList());
+        assertThat(aliased.platforms()).extracting(PlatformRule::name)
+                .containsExactlyElementsOf(List.of("平台A", "平台B", "平台C", "平台D", "平台E"));
+        assertThat(aliased.platformRuleMetadata().values())
+                .allSatisfy(metadata -> assertThat(metadata.sourceReference()).isNull());
         assertThat(observed.platforms()).extracting(PlatformRule::name)
                 .containsExactlyElementsOf(List.of("小谷吖", "九门提书", "爱回收", "旧书云", "掏书铺"));
         DatasetDisclaimer syntheticNotice = observed.disclaimers().stream()
@@ -148,7 +154,7 @@ class PostgresDatasetProviderIntegrationTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.books[0].offers[0].platformCode").value("platform-a"))
-                .andExpect(jsonPath("$.books[0].offers[0].platformDisplayName").value("平台A"));
+                .andExpect(jsonPath("$.books[0].offers[0].platformDisplayName").value("小谷吖"));
     }
 
     private long scalarCount(String sql) {

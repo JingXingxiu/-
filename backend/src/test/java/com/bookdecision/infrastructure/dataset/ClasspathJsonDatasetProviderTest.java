@@ -1,6 +1,7 @@
 package com.bookdecision.infrastructure.dataset;
 
 import com.bookdecision.application.dataset.DatasetSnapshot;
+import com.bookdecision.application.dataset.PlatformDisplayMode;
 import com.bookdecision.application.dataset.SourceKind;
 import com.bookdecision.domain.OfferStatus;
 import com.bookdecision.domain.OrderThreshold;
@@ -44,10 +45,53 @@ class ClasspathJsonDatasetProviderTest {
                         "NOT_REAL_TIME_QUOTES",
                         "ESTIMATE_NOT_SETTLEMENT"
                 );
+        assertThat(snapshot.disclaimers())
+                .filteredOn(disclaimer -> disclaimer.code().equals("OBSERVED_CATALOG_AND_RULE_SHAPES"))
+                .singleElement()
+                .extracting("text")
+                .asString()
+                .doesNotContain("匿名化");
         assertThat(snapshot.catalog()).hasSize(11);
         assertThat(snapshot.platforms()).hasSize(5);
+        assertThat(snapshot.platformDisplayMode()).isEqualTo(PlatformDisplayMode.REAL);
+        assertThat(snapshot.platforms()).extracting("name")
+                .containsExactly("小谷吖", "九门提书", "爱回收", "旧书云", "掏书铺");
         assertThat(snapshot.offers()).hasSize(55);
         assertThat(snapshot.platformRuleSummaries()).hasSize(5);
+        assertThat(snapshot.platformRuleMetadata().get("platform-a"))
+                .satisfies(metadata -> {
+                    assertThat(metadata.rejectionConditions()).contains("来源非法");
+                    assertThat(metadata.repeatPolicyDescription()).contains("有限限制");
+                    assertThat(metadata.collectedAt()).hasToString("2026-08-09");
+                    assertThat(metadata.sourceReference()).isEqualTo(
+                            "#小程序://小谷吖/ESxo7yFO2r5UPpE"
+                    );
+                });
+    }
+
+    @Test
+    void supportsAliasAndLegacyObservedConfigurationWithoutChangingPlatformIds() {
+        JsonMapper mapper = JsonMapper.builder().build();
+        DatasetSnapshot aliased = new ClasspathJsonDatasetProvider(mapper, "alias")
+                .findByVersion(ClasspathJsonDatasetProvider.SUPPORTED_VERSION)
+                .orElseThrow();
+        DatasetSnapshot legacyObserved = new ClasspathJsonDatasetProvider(mapper, "observed")
+                .findByVersion(ClasspathJsonDatasetProvider.SUPPORTED_VERSION)
+                .orElseThrow();
+
+        assertThat(aliased.platformDisplayMode()).isEqualTo(PlatformDisplayMode.ALIAS);
+        assertThat(aliased.platforms()).extracting("name")
+                .containsExactly("平台A", "平台B", "平台C", "平台D", "平台E");
+        assertThat(aliased.platformRuleMetadata().values())
+                .allSatisfy(metadata -> {
+                    assertThat(metadata.sourceDescription()).contains("隐藏具体来源标识");
+                    assertThat(metadata.sourceReference()).isNull();
+                });
+        assertThat(legacyObserved.platformDisplayMode()).isEqualTo(PlatformDisplayMode.REAL);
+        assertThat(legacyObserved.platforms()).extracting("id")
+                .containsExactlyElementsOf(aliased.platforms().stream().map(platform -> platform.id()).toList());
+        assertThat(legacyObserved.platforms()).extracting("name")
+                .containsExactly("小谷吖", "九门提书", "爱回收", "旧书云", "掏书铺");
     }
 
     @Test

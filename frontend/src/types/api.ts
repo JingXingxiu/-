@@ -1,4 +1,5 @@
 export type SourceKind = 'OBSERVED' | 'SYNTHETIC' | 'MIXED'
+export type PlatformDisplayMode = 'REAL' | 'ALIAS'
 export type OfferStatus = 'ACCEPTED' | 'REJECTED' | 'UNKNOWN'
 export type DataMode = 'SYSTEM_ONLY' | 'USER_ONLY' | 'USER_OVERLAY'
 export type DataOrigin = 'SYSTEM' | 'USER'
@@ -17,6 +18,23 @@ export type UnallocatedReason =
 export interface Disclaimer {
   code: string
   text: string
+}
+
+export interface CatalogPlatform {
+  platformCode: string
+  platformDisplayName: string
+  ruleSummary: string
+  rejectionConditions: string | null
+  repeatPolicyDescription: string | null
+  collectedAt: string | null
+  sourceDescription: string
+  sourceReference: string | null
+}
+
+export interface DemoCatalogResponse {
+  datasetVersion: string
+  platformDisplayMode: PlatformDisplayMode
+  platforms: CatalogPlatform[]
 }
 
 export interface PlatformOffer {

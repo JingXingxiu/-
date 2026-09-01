@@ -161,7 +161,9 @@ public final class DatasetSelectionService {
                 catalog,
                 base.platforms(),
                 offers,
-                base.platformRuleSummaries()
+                base.platformRuleSummaries(),
+                base.platformDisplayMode(),
+                base.platformRuleMetadata()
         );
     }
 

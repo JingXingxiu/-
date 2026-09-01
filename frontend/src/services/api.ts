@@ -1,6 +1,7 @@
 import type {
   DataSelection,
   DecisionOptionsResponse,
+  DemoCatalogResponse,
   InventoryRequestItem,
   OfferLookupResponse,
   ProblemDetail,
@@ -88,6 +89,35 @@ function post<T>(
       },
     })
   })
+}
+
+function get<T>(path: string, data?: Record<string, string>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${API_BASE_URL}${path}`,
+      method: 'GET',
+      data,
+      timeout: 30000,
+      header: {
+        accept: 'application/json, application/problem+json',
+      },
+      success: (response) => {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          resolve(response.data as T)
+          return
+        }
+        const problem = response.data as ProblemDetail | undefined
+        reject(new ApiError(problemMessage(problem, response.statusCode), response.statusCode, problem))
+      },
+      fail: (error) => {
+        reject(new ApiError(error.errMsg || '无法连接后端服务，请确认服务已经启动'))
+      },
+    })
+  })
+}
+
+export function loadDemoCatalog(): Promise<DemoCatalogResponse> {
+  return get('/api/v1/demo/catalog', { datasetVersion: DATASET_VERSION })
 }
 
 export function lookupOffers(isbns: string[], selection?: DataSelection): Promise<OfferLookupResponse> {
